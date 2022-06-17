@@ -2,6 +2,7 @@ package main
 
 import (
 	entity "Latihan-Register/Entity"
+	"log"
 	"time"
 
 	// service "Latihan-Register/Service"
@@ -9,7 +10,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 var PORT = ":8080"
@@ -21,29 +23,44 @@ var mapUser = map[int]entity.User{
 }
 
 func main() {
-	http.HandleFunc("/users/", getEmployeesbyId)
-	http.ListenAndServe(PORT, nil)
+
+	r := mux.NewRouter()
+	r.HandleFunc("/users", getEmployeesbyId)
+	r.HandleFunc("/users/{id}", getEmployeesbyId)
+	fmt.Println("Now loading on port 0.0.0.0" + PORT)
+	srv := &http.Server{
+		Handler:      r,
+		Addr:         "0.0.0.0" + PORT,
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+	log.Fatal(srv.ListenAndServe())
+
 }
 func getEmployeesbyId(w http.ResponseWriter, r *http.Request) {
-
-	fmt.Println(r.URL.Path[1:])
-	paths := strings.Split(r.URL.Path[1:], "/")
-	fmt.Printf("%+v", paths)
-	fmt.Println(len(paths))
-	// fmt.Println(users11[1])
-
+	paths := mux.Vars(r)
+	id := paths["id"]
+	fmt.Println("")
 	switch r.Method {
 	case "GET":
-		if paths[1] != "" {
-			if idInt, err := strconv.Atoi(paths[1]); err == nil {
-				fmt.Println("validasi benar2")
-				jsonData, _ := json.Marshal(mapUser[idInt])
-				// fmt.Println(&users11[idInt])
-				w.Header().Add("Content-Type", "application/json")
-				w.Write(jsonData)
+		if id != "" {
+			if idInt, err := strconv.Atoi(id); err == nil {
+				if user, ok := mapUser[idInt]; ok {
+					jsonData, _ := json.Marshal(user)
+					w.Header().Add("Content-Type", "application/json")
+					w.Write(jsonData)
+					return
+				} else {
+					w.Write([]byte("Data not found"))
+					return
+				}
 			}
 		} else {
-			jsonData, _ := json.Marshal(mapUser)
+			var sliceUser []entity.User
+			for _, v := range mapUser {
+				sliceUser = append(sliceUser, v)
+			}
+			jsonData, _ := json.Marshal(sliceUser)
 			w.Header().Add("Content-Type", "application/json")
 			w.Write(jsonData)
 		}
@@ -54,9 +71,13 @@ func getEmployeesbyId(w http.ResponseWriter, r *http.Request) {
 		newUser.Create_at = time.Now()
 		newUser.Update_at = time.Now()
 		mapUser[int(newUser.Id)] = newUser
-		JsonData, _ := json.Marshal(mapUser)
+		var sliceUser []entity.User
+		for _, v := range mapUser {
+			sliceUser = append(sliceUser, v)
+		}
+		jsonData, _ := json.Marshal(sliceUser)
 		w.Header().Add("Content-Type", "application/json")
-		w.Write(JsonData)
+		w.Write(jsonData)
 	case "PUT":
 		fmt.Println("PUT")
 		var newUser entity.User
@@ -64,26 +85,32 @@ func getEmployeesbyId(w http.ResponseWriter, r *http.Request) {
 		newUser.Create_at = time.Now()
 		newUser.Update_at = time.Now()
 		mapUser[int(newUser.Id)] = newUser
-		JsonData, _ := json.Marshal(mapUser)
+		var sliceUser []entity.User
+		for _, v := range mapUser {
+			sliceUser = append(sliceUser, v)
+		}
+		jsonData, _ := json.Marshal(sliceUser)
 		w.Header().Add("Content-Type", "application/json")
-		w.Write(JsonData)
+		w.Write(jsonData)
 	case "DELETE":
-		if paths[1] != "" {
-			if idInt, err := strconv.Atoi(paths[1]); err == nil {
-				delete(mapUser,idInt)
-				jsonData, _ := json.Marshal(mapUser)
-				// fmt.Println(&users11[idInt])
-				w.Header().Add("Content-Type", "application/json")
-				w.Write(jsonData)
+		if id != "" {
+			if idInt, err := strconv.Atoi(id); err == nil {
+				if _, ok := mapUser[idInt]; ok {
+					delete(mapUser, idInt)
+					var sliceUser []entity.User
+					for _, v := range mapUser {
+						sliceUser = append(sliceUser, v)
+					}
+					jsonData, _ := json.Marshal(sliceUser)
+					w.Header().Add("Content-Type", "application/json")
+					w.Write(jsonData)
+					return
+				} else {
+					w.Write([]byte("Data not found"))
+					return
+				}
 			}
 		}
-		// var newUser entity.User
-		// json.NewDecoder(r.Body).Decode(&newUser)
-		// delete(mapUser, newUser.Id)
-		// JsonData, _ := json.Marshal(mapUser)
-		// w.Header().Add("Content-Type", "application/json")
-		// w.Write(JsonData)
-
 	}
 
 }
