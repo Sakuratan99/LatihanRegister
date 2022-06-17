@@ -80,18 +80,29 @@ func getEmployeesbyId(w http.ResponseWriter, r *http.Request) {
 		w.Write(jsonData)
 	case "PUT":
 		fmt.Println("PUT")
-		var newUser entity.User
-		json.NewDecoder(r.Body).Decode(&newUser)
-		newUser.Create_at = time.Now()
-		newUser.Update_at = time.Now()
-		mapUser[int(newUser.Id)] = newUser
-		var sliceUser []entity.User
-		for _, v := range mapUser {
-			sliceUser = append(sliceUser, v)
+		if id != "" {
+			if idInt, err := strconv.Atoi(id); err == nil {
+				if _, ok := mapUser[idInt]; ok {
+					var newUser entity.User
+					json.NewDecoder(r.Body).Decode(&newUser)
+					newUser.Create_at = time.Now()
+					newUser.Update_at = time.Now()
+					mapUser[int(newUser.Id)] = newUser
+					var sliceUser []entity.User
+					for _, v := range mapUser {
+						sliceUser = append(sliceUser, v)
+					}
+					jsonData, _ := json.Marshal(sliceUser)
+					w.Header().Add("Content-Type", "application/json")
+					w.Write(jsonData)
+					return
+				} else {
+					w.Write([]byte("Data not found"))
+					return
+				}
+			}
 		}
-		jsonData, _ := json.Marshal(sliceUser)
-		w.Header().Add("Content-Type", "application/json")
-		w.Write(jsonData)
+		
 	case "DELETE":
 		if id != "" {
 			if idInt, err := strconv.Atoi(id); err == nil {
